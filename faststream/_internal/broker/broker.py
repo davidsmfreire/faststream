@@ -2,6 +2,7 @@ from abc import abstractmethod
 from collections.abc import Iterable, Sequence
 from typing import TYPE_CHECKING, Any, Generic, Optional
 
+import anyio
 from fast_depends import Provider
 from typing_extensions import Self
 
@@ -124,8 +125,9 @@ class BrokerUsecase(
         exc_tb: Optional["TracebackType"] = None,
     ) -> None:
         """Closes the object."""
-        for sub in self.subscribers:
-            await sub.stop()
+        async with anyio.create_task_group() as tg:
+            for sub in self.subscribers:
+                tg.start_soon(sub.stop)
 
         self.running = False
 
